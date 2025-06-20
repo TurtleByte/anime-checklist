@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anime Watch Tracker</title>
+  <style>
+    body {
+      background-color: #111;
+      color: white;
+      font-family: sans-serif;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #header {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    #export-wrapper {
+      width: 90%;
+      background-color: #111;
+      color: white;
+    }
+    #anime-container {
+      width: 100%;
+      align-items: center;
+    }
+    .year-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+      width: 100%;
+    }
+    .year-title {
+      width: 60px;
+      font-weight: bold;
+      font-size: 1em;
+      text-align: right;
+      margin-right: 10px;
+      flex-shrink: 0;
+      background-color: #444;
+      color: #ccc;
+      padding: 10px;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .year-title.complete {
+      background-color: #22c55e;
+      color: white;
+    }
+    .anime-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 4px;
+      width: 100%;
+    }
+    .anime-cell {
+      min-height: 60px;
+      padding: 4px;
+      background-color: #333;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      white-space: normal;
+      word-wrap: break-word;
+      text-align: center;
+    }
+    .anime-cell.watched {
+      background-color: #22c55e;
+      color: white;
+    }
+    #title {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    #counter {
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+    #save-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #22c55e;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="export-wrapper">
+    <div id="header">
+      <div id="title">Anime Checklist</div>
+      <div id="counter">Watched: 0 / 0</div>
+    </div>
+    <div id="anime-container"></div>
+  </div>
+  <button id="save-button">Save Table as Image</button>
+
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script>
+    const animeData = [
+      { year: 2005, titles: ["Mushishi", "Eureka Seven", "Akagi", "Paradise Kiss", "Honey and Clover", "ARIA The ANIMATION", "Eyeshield 21", "Blood+", "Glass Mask", "Basilisk"] },
+	  { year: 2006, titles: ["Death Note", "Code Geass", "The Melancholy of Haruhi Suzumiya", "Welcome to the NHK", "Black Lagoon", "Ergo Proxy", "Higurashi", "Ouran High School Host Club", "Gintama", "Nana"] },
+      { year: 2007, titles: ["Clannad", "Gurren Lagann", "Baccano!", "Darker than Black", "Mononoke", "Naruto Shippuden", "Nodame Cantabile", "Mobile Suit Gundam 00", "Lovely Complex", "Kaiji"] },
+      { year: 2008, titles: ["Spice and Wolf", "Toradora!", "Kaiba", "Soul Eater", "Michiko & Hatchin", "Skip Beat!", "Natsume's Book of Friends", "Inazuma Eleven", "Black Butler", "One Outs"] },
+      { year: 2009, titles: ["Fullmetal Alchemist: Brotherhood", "Bakemonogatari", "Fairy Tail", "Eden of the East", "Cross Game", "Kimi ni Todoke", "K-ON!", "Yumeiro Patisserie", "A Certain Scientific Railgun", "Hayate the Combat Butler"] },
+      { year: 2010, titles: ["Angel Beats!", "Durarara!!", "The Tatami Galaxy", "Arakawa Under the Bridge", "Kuragehime", "Shiki", "Katanagatari", "Panty & Stocking with Garterbelt", "Bakuman", "Maid-Sama"] },
+      { year: 2011, titles: ["Steins;Gate", "Anohana", "Fate/Zero", "Blue Exorcist", "Chihayafuru", "Mawaru Penguindrum", "Hunter X Hunter", "Puella Magi Madoka Magica", "Usagi Drop", "Nichijou"] },
+      { year: 2012, titles: ["Psycho-Pass", "From the New World", "JoJo’s Bizarre Adventure", "Kuroko's Basketball", "Kamisama Kiss", "Daily Lives of High School Boys", "The Pet Girl of Sakurasou", "Magi: The Labyrinth of Magic", "Love, Chunibyo & Other Delusions", "Hyouka"] },
+      { year: 2013, titles: ["Attack on Titan", "The Devil is a Part-Timer!", "Ace of the Diamond", "Non Non Biyori", "Kill la Kill", "Golden Time", "Nagi no Asukara", "Log Horizon", "Yowamushi Pedal", "Oregairu: My Teen Romantic Comedy SNAFU"] },
+      { year: 2014, titles: ["Parasyte", "No Game No Life", "Barakamon", "Ping Pong the Animation", "Shirobako", "Your Lie in April", "HAIKYU!!", "Terror in Resonance", "Noragami", "Monthly Girls' Nozaki-kun"] },
+      { year: 2015, titles: ["One Punch Man", "Death Parade", "Assassination Classroom", "Charlotte", "Overlord", "Sound! Euphonium", "Food Wars!", "Plastic Memories", "Seraph of the End", "Blood Blockade Battlefront"] },
+      { year: 2016, titles: ["Re:Zero", "Mob Psycho 100", "Erased", "March Comes In Like a Lion", "Konosuba", "Bungou Stray Dogs", "Yuri On Ice", "My Hero Academia", "Tanaka-kun is Always Listless", "91 Days"] },
+      { year: 2017, titles: ["Made in Abyss", "The Ancient Magus’ Bride", "Land of the Lustrous", "Tsuki ga Kirei", "Welcome to the Ballroom", "Black Clover", "Miss Kobayashi's Dragon Maid", "Saga of Tanya the Evil", "Little Witch Academia", "Girls’ Last Tour"] },
+      { year: 2018, titles: ["Violet Evergarden", "Rascal Does Not Dream of Bunny Girl Senpai", "A Place Further Than the Universe", "Hinamatsuri", "Asobi Asobase", "Grand Blue", "Banana Fish", "Yuru Camp", "That Time I Got Reincarnated As A Slime", "Bloom Into You"] },
+      { year: 2019, titles: ["Demon Slayer", "The Promised Neverland", "Kaguya-sama: Love Is War", "Vinland Saga", "Dororo", "Dr. Stone", "Astra Lost in Space", "given", "Fruits Basket", "Ascendance of a Bookworm"] },
+      { year: 2020, titles: ["Jujutsu Kaisen", "Keep Your Hands Off Eizouken!", "Moriarty the Patriot", "Dorohedoro", "Akudama Drive", "ID: Invaded", "Kakushigoto", "Somali and the Forest Spirit", "Toilet-bound Hanako-kun", "Tonikawa: Over The Moon For You"] },
+      { year: 2021, titles: ["Odd Taxi", "86", "Mushoku Tensei", "Vivy: Fluorite Eye’s Song", "Horimiya", "SK8 the Infinity", "To Your Eternity", "Ranking of Kings", "Sonny Boy", "Blue Period"] },
+      { year: 2022, titles: ["Chainsaw Man", "Bocchi the Rock!", "Cyberpunk: Edgerunners", "My Dress-Up Darling", "Call of the Night", "The Eminence in Shadow", "Lycoris Recoil", "Blue Lock", "Sasaki and Miyano", "Summertime Rendering"] },
+      { year: 2023, titles: ["Oshi no Ko", "The Apothecary Diaries", "Skip and Loafer", "Pluto", "Hell's Paradise", "Heavenly Delusion", "Insomniacs After School", "Shangri-La Frontier", "Frieren: Beyond Journey’s End", "The Dangers in My Heart"] },
+      { year: 2024, titles: ["Solo Leveling", "Delicious in Dungeon", "Orb: On The Movements Of The Earth", "DAN DA DAN", "Girls Band Cry", "Kaiju No.8", "Blue Box", "A Sign of Affection", "Makeine: Too Many Losing Heroines!", "DEAD DEAD DEMONS DEDEDEDE DESTRUCTION"] },
+      { year: 2025, titles: ["To Be Hero X", "Medalist", "SAKAMOTO DAYS", "mono", "Apocalypse Hotel", "Food for the Soul", "Rock is a Lady’s Modesty", "I Have a Crush at Work", "Anne Shirley", "ZENSHU"] }
+    ];
+
+    const totalTitles = animeData.reduce((acc, year) => acc + year.titles.length, 0);
+    let watchedCount = 0;
+
+    const container = document.getElementById("anime-container");
+    const counter = document.getElementById("counter");
+    counter.textContent = `Watched: ${watchedCount} / ${totalTitles}`;
+
+    animeData.forEach((block) => {
+      const row = document.createElement("div");
+      row.className = "year-row";
+
+      const title = document.createElement("div");
+      title.className = "year-title";
+      title.textContent = block.year;
+      row.appendChild(title);
+
+      const grid = document.createElement("div");
+      grid.className = "anime-grid";
+
+      const cells = [];
+
+      block.titles.forEach((anime) => {
+        const cell = document.createElement("div");
+        cell.className = "anime-cell";
+        cell.textContent = anime;
+
+        cell.onclick = () => {
+          const watched = cell.classList.toggle("watched");
+          watchedCount += watched ? 1 : -1;
+          counter.textContent = `Watched: ${watchedCount} / ${totalTitles}`;
+
+          // Check if all cells in this row are watched
+          const allWatched = cells.every(c => c.classList.contains("watched"));
+          if (allWatched) {
+            title.classList.add("complete");
+          } else {
+            title.classList.remove("complete");
+          }
+        };
+
+        cells.push(cell);
+        grid.appendChild(cell);
+      });
+
+      row.appendChild(grid);
+      container.appendChild(row);
+    });
+
+    document.getElementById("save-button").addEventListener("click", () => {
+      html2canvas(document.querySelector("#export-wrapper"), {
+        backgroundColor: '#111'
+      }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = 'anime-checklist.png';
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    });
+  </script>
+</body>
+</html>
