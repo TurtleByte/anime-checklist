@@ -1,71 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width" />
   <title>Anime Watch Tracker</title>
   <style>
     html, body {
-      min-width: 1480px;
-      max-width: 1480px;
-	  margin: 0 auto;
+      width: 1600px;
+      margin: 0 auto;
       overflow-x: auto;
-    }
-    body {
       background-color: #111;
       color: white;
       font-family: sans-serif;
       padding: 20px;
-      display: block;
-      margin: 0 auto;
     }
+
     #header {
-      width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 4px;
+      flex-wrap: wrap;
     }
-    #export-wrapper {
-      width: 100%;
-      background-color: #111;
+
+    #title {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    #filters label {
+      margin-right: 10px;
+    }
+
+    #counter {
+      font-size: 1.2em;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .switch-button {
+      padding: 10px 20px;
+      background-color: #333;
       color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
     }
+
+    .switch-button.active {
+      background-color: #3b82f6;
+      font-weight: bold;
+    }
+
     #anime-container {
-      width: 100%;
+      margin-top: 20px;
     }
+
     .year-row {
       display: flex;
       align-items: center;
       margin-bottom: 4px;
-      width: 100%;
     }
+
     .year-title {
       width: 60px;
       font-weight: bold;
       font-size: 1em;
-      text-align: right;
+      text-align: center;
       margin-right: 10px;
-      flex-shrink: 0;
       background-color: #444;
       color: #ccc;
       padding: 10px;
       border-radius: 5px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      transition: background-color 0.2s, color 0.2s;
+      flex-shrink: 0;
     }
-    .year-title.complete {
-      background-color: #22c55e;
-      color: white;
-    }
+
+    .year-title.watched { background-color: #22c55e; color: white; }
+    .year-title.partial { background-color: #eab308; color: white; }
+    .year-title.dropped { background-color: #ef4444; color: white; }
+
     .anime-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 4px;
-      width: 100%;
+      flex: 1;
     }
+
     .anime-cell {
       min-height: 40px;
       padding: 4px;
@@ -76,158 +103,266 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      text-align: center;
+      user-select: none;
       white-space: normal;
       word-wrap: break-word;
-      text-align: center;
     }
-    .anime-cell.watched {
-      background-color: #22c55e;
-      color: white;
-    }
-    #title {
-      font-size: 1.5em;
-      font-weight: bold;
-    }
-    #counter {
-      font-size: 1.5em;
-      font-weight: bold;
-    }
-    #save-button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      background-color: #22c55e;
-      border: none;
-      border-radius: 5px;
-      color: white;
-      font-size: 1em;
-      cursor: pointer;
-    }
-	
+
+    .anime-cell.watched { background-color: #22c55e; color: white; }
+    .anime-cell.partial { background-color: #eab308; color: white; }
+    .anime-cell.dropped { background-color: #ef4444; color: white; }
+
+    #save-button,
     #reset-button {
       margin-top: 20px;
       padding: 10px 20px;
-      background-color: #ff0000;
       border: none;
       border-radius: 5px;
       color: white;
       font-size: 1em;
       cursor: pointer;
     }
+
+    #save-button { background-color: #22c55e; }
+    #reset-button { background-color: #ff0000; }
   </style>
 </head>
 <body>
   <div id="export-wrapper">
     <div id="header">
-      <div id="title">20 Years of Anime Checklist</div>
-      <div id="counter">Watched: 0 / 0</div>
+      <div id="title">Anime Checklist</div>
+      <div class="button-container">
+        <button class="switch-button active" id="tab-rated">Highest Rated</button>
+        <button class="switch-button" id="tab-popular">Most Popular</button>
+      </div>
+      <div id="filters">
+        <label for="start-year">From: <select id="start-year"></select></label>
+        <label for="end-year">To: <select id="end-year"></select></label>
+      </div>
+      <div id="counter"></div>
     </div>
+
     <div id="anime-container"></div>
   </div>
+
   <button id="save-button">Save Table as Image</button>
   <button id="reset-button">Reset Progress</button>
 
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script>
-const animeData = [
-      { year: 2005, titles: ["Mushishi", "Eureka Seven", "Akagi", "Paradise Kiss", "Honey and Clover", "ARIA The ANIMATION", "Eyeshield 21", "Blood+", "Glass Mask", "Basilisk", "Hell Girl"] },
-	  { year: 2006, titles: ["Death Note", "Code Geass", "The Melancholy of Haruhi Suzumiya", "Welcome to the NHK", "Black Lagoon", "Ergo Proxy", "Higurashi", "Ouran High School Host Club", "Gintama", "Nana", "The Familiar of Zero"] },
-      { year: 2007, titles: ["Clannad", "Gurren Lagann", "Baccano!", "School Days", "Mononoke", "Naruto Shippuden", "Nodame Cantabile", "Mobile Suit Gundam 00", "Lovely Complex", "Kaiji", "Claymore"] },
-      { year: 2008, titles: ["Spice and Wolf", "Toradora!", "Kaiba", "Soul Eater", "Rosario + Vampire", "Skip Beat!", "Natsume's Book of Friends", "Inazuma Eleven", "Black Butler", "To Love Ru", "A Certain Magical Index"] },
-      { year: 2009, titles: ["Fullmetal Alchemist: Brotherhood", "Bakemonogatari", "Fairy Tail", "Eden of the East", "Cross Game", "Kimi ni Todoke", "K-ON!", "Yumeiro Patisserie", "A Certain Scientific Railgun", "Hayate the Combat Butler","Heaven's Lost Property"] },
-      { year: 2010, titles: ["Angel Beats!", "Durarara!!", "The Tatami Galaxy", "Arakawa Under the Bridge", "Kuragehime", "Shiki", "Katanagatari", "Panty & Stocking with Garterbelt", "Bakuman", "Maid-Sama","High School Of The Dead"] },
-      { year: 2011, titles: ["Steins;Gate", "Anohana", "Fate/Zero", "Blue Exorcist", "Chihayafuru", "Mawaru Penguindrum", "Hunter X Hunter", "Puella Magi Madoka Magica", "Usagi Drop", "Nichijou","The Future Diary"] },
-      { year: 2012, titles: ["Psycho-Pass", "From the New World", "JoJo’s Bizarre Adventure", "Kuroko's Basketball", "Kamisama Kiss", "Daily Lives of High School Boys", "The Pet Girl of Sakurasou", "Sword Art Online", "Love, Chunibyo & Other Delusions", "Hyouka", "High School DxD"] },
-      { year: 2013, titles: ["Attack on Titan", "The Devil is a Part-Timer!", "Beyond The Boundary", "Non Non Biyori", "Kill la Kill", "Golden Time", "Nagi no Asukara", "Log Horizon", "Yowamushi Pedal", "Oregairu: My Teen Romantic Comedy SNAFU", "Free! -Iwatobi Swim Club-"] },
-      { year: 2014, titles: ["Parasyte", "No Game No Life", "Barakamon", "Ping Pong the Animation", "Shirobako", "Your Lie in April", "HAIKYU!!", "Terror in Resonance", "Noragami", "Monthly Girls' Nozaki-kun", "Akame ga Kill!"] },
-      { year: 2015, titles: ["One Punch Man", "Death Parade", "Assassination Classroom", "Charlotte", "Overlord", "Sound! Euphonium", "Food Wars!", "Plastic Memories", "Seraph of the End", "Blood Blockade Battlefront", "Prison School"] },
-      { year: 2016, titles: ["Re:Zero", "Mob Psycho 100", "Erased", "March Comes In Like a Lion", "Konosuba", "Bungou Stray Dogs", "Yuri On Ice", "My Hero Academia", "Tanaka-kun is Always Listless", "91 Days", "ReLIFE"] },
-      { year: 2017, titles: ["Made in Abyss", "The Ancient Magus’ Bride", "Land of the Lustrous", "Tsuki ga Kirei", "Classroom of the Elite", "Black Clover", "Miss Kobayashi's Dragon Maid", "Saga of Tanya the Evil", "Little Witch Academia", "Girls’ Last Tour", "Kakegurui"] },
-      { year: 2018, titles: ["Violet Evergarden", "Rascal Does Not Dream of Bunny Girl Senpai", "A Place Further Than the Universe", "Hinamatsuri", "Asobi Asobase", "Grand Blue", "Banana Fish", "Yuru Camp", "That Time I Got Reincarnated As A Slime", "Bloom Into You", "Darling In The FranXX"] },
-      { year: 2019, titles: ["Demon Slayer", "The Promised Neverland", "Kaguya-sama: Love Is War", "Vinland Saga", "Dororo", "Dr. Stone", "Astra Lost in Space", "given", "Fruits Basket", "Ascendance of a Bookworm","Fire Force"] },
-      { year: 2020, titles: ["Jujutsu Kaisen", "Keep Your Hands Off Eizouken!", "Moriarty the Patriot", "Dorohedoro", "Akudama Drive", "ID: Invaded", "Kakushigoto", "Somali and the Forest Spirit", "Toilet-bound Hanako-kun", "Tonikawa: Over The Moon For You", "Rent-a-Girlfriend"] },
-      { year: 2021, titles: ["ODDTAXI", "86", "Mushoku Tensei", "Vivy: Fluorite Eye’s Song", "Horimiya", "SK8 the Infinity", "To Your Eternity", "Ranking of Kings", "Sonny Boy", "Blue Period", "Komi Can't Communicate"] },
-      { year: 2022, titles: ["Chainsaw Man", "Bocchi the Rock!", "Cyberpunk: Edgerunners", "My Dress-Up Darling", "Call of the Night", "The Eminence in Shadow", "Lycoris Recoil", "Blue Lock", "Sasaki and Miyano", "Summertime Rendering", "SPY x FAMILY"] },
-      { year: 2023, titles: ["Oshi no Ko", "The Apothecary Diaries", "Skip and Loafer", "Pluto", "Hell's Paradise", "Heavenly Delusion", "Insomniacs After School", "Shangri-La Frontier", "Frieren: Beyond Journey’s End", "The Dangers in My Heart", "MASHLE: MAGIC AND MUSCLES"] },
-      { year: 2024, titles: ["Solo Leveling", "Delicious in Dungeon", "Orb: On The Movements Of The Earth", "DAN DA DAN", "Girls Band Cry", "Kaiju No.8", "Blue Box", "A Sign of Affection", "Makeine: Too Many Losing Heroines!", "My Deer Friend Nokotan", "WIND BREAKER"] }
-	];
-    const storageKey = 'watchedAnime';
-    const savedProgress = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    const highestRatedData = [
+  { year: 1985, titles: ['Touch', "Angel's Egg", 'A Little Princess Sara', 'Area 88', 'Night on the Galactic Railroad', 'Dirty Pair', 'High School! Kimengumi', "Penguin's Memory: Shiawase Monogatari", 'Blue Comet SPT Layzner', 'Alpen Rose', 'Magical Emi, the Magic Star', 'Dancouga: Super Beast Machine God'] },
+  { year: 1986, titles: ['Castle in the Sky', 'Maison Ikkoku', 'Dragon Ball', 'Shounan Bakusouzoku', 'Ginga: Nagareboshi Gin', 'Saint Seiya: Knights of the Zodiac', 'Fist of the North Star Movie', 'Blue Comet SPT Layzner', 'Bosco Adventure', 'They Were 11', 'Project A-ko', 'Ai Shoujo Pollyanna Story'] },
+  { year: 1987, titles: ['City Hunter', 'Royal Space Force: The Wings of Honnêamise', 'Kimagure Orange☆Road', 'Tales of Little Women', 'Devilman: The Birth', 'Bubblegum Crisis', 'Robot Carnival', 'Lady Lady!!', 'Manie Manie: Neo Tokyo', "Grimm's Fairy Tale Classics", 'Mister Ajikko', 'Sunny Ryoko'] },
+  { year: 1988, titles: ['Grave of the Fireflies', 'My Neighbor Totoro', 'Akira', 'Gunbuster', 'Legend of the Galactic Heroes: My Conquest Is the Sea of Stars', 'Mobile Police Patlabor', 'Sakigake!! Otokojuku', 'Maison Ikkoku: Final Chapter', 'Kiteretsu Encyclopedia', 'Oishinbo', 'Ronin Warriors', 'Mashin Eiyuuden Wataru'] },   
+  { year: 1989, titles: ["Kiki's Delivery Service", 'Patlabor the Mobile Police', 'Ranma ½', 'Gosenzo-sama Banbanzai!', 'YAWARA! a fashionable judo girl!', 'Riding Bean', 'Seton Animal Chronicles', 'Miracle Giants Dome-kun', 'Idol Densetsu Eriko', 'The Guyver: Bio-Booster Armor', 'Time Quest', 'The Jungle Book'] },
+  { year: 1990, titles: ['Moomin', 'Nadia: The Secret of Blue Water', 'My Daddy Long Legs', 'Be-Bop High School', 'Cyber City Oedo 808', 'Record of Lodoss War', 'Magical★Taruruuto-kun', '108 Ward Inside and Out: Make-Up Artist', 'Mitsume ga Tooru', 'The Great Adventures of Robin Hood', 'NG Knight Lamune & 40', 'Edokko Boy: Gatten Tasuke'] },
+  { year: 1991, titles: ['Dear Brother', 'Only Yesterday', 'The Trapp Family Story', 'Future GPX Cyber Formula', 'Kingyo Chuuihou!', 'Otaku no Video', 'Brave of the Sun Fighbird', 'Honoo no Toukyuuji: Dodge Danpei', 'Roujin Z', 'Fairy Princess Minky Momo 2nd', "Who's Left Behind?", 'Story from Genji Agedama'] },
+  { year: 1992, titles: ['Yu Yu Hakusho: Ghostfiles', 'Porco Rosso', 'Ramayana: The Legend of Prince Rama', 'Shin Chan', 'Giant Robo the Animation: The Day the Earth Stood Still', 'Sailor Moon', 'Tenchi Muyo! Ryo-Ohki', 'Mama wa Shougaku 4 Nensei', 'Hime-chan no Ribbon', 'Tekkaman Blade', 'Video Girl Ai', 'Densetsu no Yuusha Da-Garn'] },
+  { year: 1993, titles: ['Slam Dunk', 'Mobile Police Patlabor 2: The Movie', 'Kyou kara Ore wa!!', 'Black Jack', 'Dragon Ball Z: The History of Trunks', 'The Irresponsible Captain Tylor', "JoJo's Bizarre Adventure", 'Ninja Scroll', 'Yuusha Tokkyuu Might Gaine', 'Aoki Densetsu Shoot!', 'Oh! My Goddess', 'Ghost Sweeper Mikami'] },
+  { year: 1994, titles: ['Galaxy Warring State Chronicle Rai', 'Yuusha Keisatsu J-Decker', "You're Under Arrest!", 'Magic Knight Rayearth', 'Magical Circle Guru Guru', 'Pom Poko', 'Tottemo! Luckyman', 'Shounan Junai Gumi!', 'Marmalade Boy', 'Red Riding Hood Chacha', 'Captain Tsubasa J', 'Tico and Friends'] },
+  { year: 1995, titles: ['Neon Genesis Evangelion', 'Whisper of the Heart', 'Ghost in the Shell', "Romeo's Blue Skies", 'GOLDEN BOY', 'Gokinjo Monogatari', 'Memories', 'Mysterious Thief Saint Tail', 'Fushigi Yugi: The Mysterious Play', 'Tenchi Muyo! Tenchi Universe', 'Junkers Come Here', 'The Brave of Gold Goldran'] },
+  { year: 1996, titles: ['Case Closed', 'Rurouni Kenshin', 'Kodocha', "Remi, Nobody's Girl", 'KochiKame', 'Baby and Me', 'Martian Successor Nadesico', 'Vision of Escaflowne', 'Jigoku Sensei Nube', 'Angel of Legend', 'Hana Yori Dango (Boys Over Flowers)', 'Spring and Chaos'] },
+  { year: 1997, titles: ['Princess Mononoke', 'Berserk', 'Revolutionary Girl Utena', 'Kindaichi Shounen no Jikenbo (TV)', 'The King of Braves: GaoGaiGar', 'Pokémon', 'Crayon Kingdom of Dreams', 'Cooking Master Boy', 'Flame of Recca', 'Grander Musashi', 'Vampire Princess Miyu (TV)', 'Hakugei: Legend of the Moby Dick'] },
+  { year: 1998, titles: ['Cowboy Bebop', 'Perfect Blue', 'Initial D 1st Stage', 'Cardcaptor Sakura', 'Serial Experiments Lain', 'Trigun', 'Getter Robo: Armageddon', 'His and Her Circumstances', 'Outlaw Star', 'Yokohama Shopping Log', 'MASTER Keaton', 'Fushigi Mahou Fun Fun Pharmacy'] },
+  { year: 1999, titles: ['ONE PIECE', 'Hunter x Hunter', 'The Big O', 'Magical DoReMi', 'Now and Then, Here and There', 'Crest of the Stars', 'Infinite Ryvius', 'Kamikaze Kaitou Jeanne', 'Excel Saga', 'Gokudo', 'Zoids', 'Aoyama Goushou Tanpenshuu'] },
+  { year: 2000, titles: ['Hajime no Ippo: The Fighting!', 'Shelter', 'FLCL', 'Jin-Roh: The Wolf Brigade', 'InuYasha', 'Tokyo Ghetto', 'Last Dance', 'Ghost Stories', 'Hidamari no Ki', 'Shoubushi Densetsu Tetsuya', 'Yu-Gi-Oh!', 'On Your Mark'] },
+  { year: 2001, titles: ['Spirited Away', 'Hikaru no Go', 'The Prince of Tennis', 'Fruits Basket', 'Metropolis', 'Shaman King', 'Haré+Guu', 'Noir', 'Baki the Grappler', 'R.O.D - READ OR DIE', 'Mazinkaiser', 'Hellsing'] },
+  { year: 2002, titles: ['Ghost in the Shell: Stand Alone Complex', 'Millennium Actress', 'Princess Tutu', 'Naruto', 'Haibane Renmei', 'Azumanga Daioh', 'The Twelve Kingdoms', 'Looking for the Full Moon', 'Hanada Shounen-shi', 'The Cat Returns', 'Full Metal Panic!', 'Hungry Heart: Wild Striker'] },
+  { year: 2003, titles: ['Tokyo Godfathers', "Kino's Journey", 'Planetes', 'Fullmetal Alchemist', 'Interstella 5555: The 5tory of the 5ecret 5tar 5ystem', 'Texhnolyze', 'Gungrave', 'Kaleido Star', 'Cromartie High School', 'Mujin Wakusei Survive', 'Last Exile', 'Detective School Q'] },
+  { year: 2004, titles: ['Monster', 'Howl‘s Moving Castle', 'Samurai Champloo', 'Beck: Mongolian Chop Squad', 'Major S1', 'Gankutsuou: The Count of Monte Cristo', 'Bleach', 'Mind Game', 'Paranoia Agent', 'School Rumble', 'Yakitate!! Japan', 'Sgt. Frog'] },
+  { year: 2005, titles: ['MUSHI-SHI', 'Eureka Seven', 'Akagi', 'Paradise Kiss', 'Glass Mask (2005)', 'Honey and Clover', 'ARIA The ANIMATION', 'Eyeshield 21', 'capeta', 'Strawberry Marshmallow', 'Emma: A Victorian Romance', 'The Law of Ueki'] },
+  { year: 2006, titles: ['Gintama', 'Code Geass: Lelouch of the Rebellion', 'NANA', 'Death Note', 'Welcome to the N-H-K', 'Hellsing Ultimate', 'Ouran High School Host Club', 'Paprika', 'Black Lagoon', 'The Girl Who Leapt Through Time', 'Kenichi: The Mightiest Disciple', 'REBORN!'] },
+  { year: 2007, titles: ['Gurren Lagann', 'Kaiji - Ultimate Survivor', 'Mononoke', 'Baccano!', 'Nodame Cantabile', 'Sword of the Stranger', 'Moribito: Guardian of the Spirit', 'Den-noh Coil', 'Lovely Complex', 'Darker than Black', 'Les Misérables: Shoujo Cosette', 'Clannad'] },
+  { year: 2008, titles: ['One Outs', "Natsume's Book of Friends Season 1", 'Spice and Wolf', 'Ponyo', 'Kaiba', 'Toradora!', 'Skip Beat!', 'Time of Eve', 'Soul Eater', 'La Maison en Petits Cubes', 'Inazuma Eleven', 'Detroit Metal City'] },
+  { year: 2009, titles: ['Fullmetal Alchemist: Brotherhood', 'Bakemonogatari', 'Cross Game', 'Erin', 'Kimi ni Todoke: From Me to You', 'K-ON!', 'Summer Wars', 'Tokyo Magnitude 8.0', 'Saint Seiya: The Lost Canvas', "Welcome to Irabu's Office", 'Kobato', 'Yumeiro Patissiere'] },
+  { year: 2010, titles: ['The Tatami Galaxy', 'Katanagatari', 'Rainbow', 'Bakuman.', 'Durarara!!', 'Princess Jellyfish', 'The Secret World of Arrietty', 'Maid-Sama!', 'Angel Beats!', 'Panty & Stocking with Garterbelt', 'House of Five Leaves', 'Shiki'] },
+  { year: 2011, titles: ['Hunter x Hunter (2011)', 'Nichijou - My Ordinary Life', 'Puella Magi Madoka Magica', 'Fate/Zero', 'Bunny Drop', 'Chihayafuru', 'Anohana: The Flower We Saw That Day', "Into the Forest of Fireflies' Light", 'Penguindrum', 'SKET Dance', 'Carnival Phantasm', 'Hyouge Mono'] },
+  { year: 2012, titles: ['Wolf Children', 'Space Brothers', 'PSYCHO-PASS', 'Star Blazers: Space Battleship Yamato 2199', 'Kids on the Slope', 'From the New World', 'Kamisama Kiss', 'Daily Lives of High School Boys', 'Hyouka', "Kuroko's Basketball", 'The Pet Girl of Sakurasou', 'Magi: The Labyrinth of Magic'] },
+  { year: 2013, titles: ['Attack on Titan', 'The Tale of The Princess Kaguya', 'The Wind Rises', 'Ace of the Diamond', 'Kill la Kill', 'Silver Spoon', 'My Teen Romantic Comedy SNAFU', 'Non Non Biyori', 'Yowamushi Pedal', 'The Eccentric Family', 'A Lull in the Sea (Nagi-Asu: Nagi no Asukara)', 'Log Horizon'] },   
+  { year: 2014, titles: ['Ping Pong the Animation', 'Your lie in April', 'HAIKYU!!', 'Barakamon', 'SHIROBAKO', 'Parasyte -the maxim-', 'Yona of the Dawn', 'Terror in Resonance', 'When Marnie Was There', 'Noragami', 'No Game, No Life', 'Space Dandy'] },
+  { year: 2015, titles: ['One Punch Man', 'Death Parade', 'Sound! Euphonium', 'The Boy and The Beast', 'Assassination Classroom', 'Food Wars!', 'Plastic Memories', 'My Love Story!!', 'Overlord', 'Snow White with the Red Hair', 'The Anthem of The Heart', 'Charlotte'] },
+  { year: 2016, titles: ['A Silent Voice', 'Your Name.', 'Mob Psycho 100', 'Showa Genroku Rakugo Shinju', 'March comes in like a lion', 'The Disastrous Life of Saiki K.', 'Re:ZERO -Starting Life in Another World-', 'ERASED', 'In This Corner of the World', "KONOSUBA -God's blessing on this wonderful world!", 'ReLIFE', 'Yuri!!! on ICE'] },
+  { year: 2017, titles: ['Made in Abyss', 'Land of the Lustrous', "Girls' Last Tour", 'Welcome to the Ballroom', 'Tsukigakirei', 'Black Clover', "The Ancient Magus' Bride", "Miss Kobayashi's Dragon Maid", 'Saga of Tanya the Evil', 'Little Witch Academia (TV)', 'Classroom of the Elite', 'Princess Principal'] },
+  { year: 2018, titles: ['Violet Evergarden', 'A Place Further Than the Universe', 'I Want to Eat Your Pancreas', 'Run with the Wind', 'BANANA FISH', 'Grand Blue Dreaming', 'Maquia: When the Promised Flower Blooms', 'Laid-Back Camp', 'Rascal Does Not Dream of Bunny Girl Senpai', 'That Time I Got Reincarnated as a Slime', 'HINAMATSURI', 'Asobi Asobase - workshop of fun -'] },
+  { year: 2019, titles: ['Vinland Saga', 'The Promised Neverland', 'Kaguya-sama: Love is War', 'Demon Slayer: Kimetsu no Yaiba', 'given', 'Fruits Basket (2019)', 'Dr. STONE', 'Weathering With You', 'Dororo', 'In This Corner (and Other Corners) of the World', 'ASTRA LOST IN SPACE', 'Ascendance of a Bookworm'] },
+  { year: 2020, titles: ['JUJUTSU KAISEN', 'Josee, the Tiger and the Fish', 'Great Pretender', 'Moriarty the Patriot', 'Keep Your Hands Off Eizouken!', 'Dorohedoro', 'Sleepy Princess in the Demon Castle', 'Kakushigoto', 'The Stranger by the Shore', 'Toilet-bound Hanako-kun', 'TONIKAWA: Over The Moon For You', 'ID: INVADED'] },
+  { year: 2021, titles: ['Link Click', 'ODDTAXI', 'Ranking of Kings', '86 EIGHTY-SIX', 'Mushoku Tensei: Jobless Reincarnation', "Vivy -Fluorite Eye's Song-", 'To Your Eternity', 'Horimiya', 'Pompo: The Cinéphile', 'SK8 the Infinity','Love Live! Superstar!!', 'Sonny Boy'] },
+  { year: 2022, titles: ['BOCCHI THE ROCK!', 'Cyberpunk: Edgerunners', 'SPY x FAMILY', 'Chainsaw Man', 'Summer Time Rendering', 'Suzume', 'Kotaro Lives Alone', 'The Eminence in Shadow', 'Aoashi', 'Lycoris Recoil', 'Sasaki and Miyano', 'My Dress-Up Darling'] },
+  { year: 2023, titles: ['Frieren: Beyond Journey’s End', 'The Apothecary Diaries', 'Oshi No Ko', 'PLUTO', 'Blue Giant', 'Tengoku Daimakyo', 'The Dangers in My Heart', 'Skip and Loafer', 'Shangri-La Frontier', 'Scott Pilgrim Takes Off', 'Buddy Daddies', 'Hell’s Paradise'] },
+  { year: 2024, titles: ['LOOK BACK', 'Orb: On the Movements of the Earth', 'Delicious in Dungeon', 'DAN DA DAN', 'Girls Band Cry', 'Kaiju No.8', 'Solo Leveling', 'A Sign of Affection', 'Blue Box', 'Makeine: Too Many Losing Heroines!', 'Ranma ½ (2024)', 'Spice and Wolf: MERCHANT MEETS THE WISE WOLF'] }
+ ];
+    const mostPopularData = [
+  { year: 1985, titles: ["Angel's Egg", 'VAMPIRE HUNTER D', 'Dirty Pair', 'Night on the Galactic Railroad', 'Touch', 'Megazone 23', 'Area 88', 'A Little Princess Sara', 'Leda: The Fantastic Adventure of Yohko', 'Fight!! Iczer-1', 'Dream Hunter REM', 'Blue Comet SPT Layzner'] },
+  { year: 1986, titles: ['Dragon Ball', 'Castle in the Sky', 'Saint Seiya: Knights of the Zodiac', 'Maison Ikkoku', 'Dragon Ball: Curse of the Blood Rubies', 'Project A-ko', 'Ginga: Nagareboshi Gin', 'MD Geist - The Most Dangerous Ever', 'Fist of the North Star Movie', 'They Were 11', 'Call Me Tonight', 'OUTLANDERS'] },
+  { year: 1987, titles: ['City Hunter', 'Bubblegum Crisis', 'Wicked City', 'Kimagure Orange☆Road', 'Royal Space Force: The Wings of Honnêamise', 'Manie Manie: Neo Tokyo', 'Devilman: The Birth', 'Robot Carnival', 'Black Magic M-66', 'The Poem of Wind and Trees', 'Genji Monogatari', 'Lily C.A.T.'] },
+  { year: 1988, titles: ['My Neighbor Totoro', 'Akira', 'Grave of the Fireflies', 'Gunbuster', 'Mobile Police Patlabor', 'Legend of the Galactic Heroes: My Conquest Is the Sea of Stars', 'Appleseed', 'Demon City Shinjuku', "Dragon's Heaven", 'Vampire Princess Miyu', 'Sakigake!! Otokojuku', 'Ronin Warriors'] },
+  { year: 1989, titles: ["Kiki's Delivery Service", 'Ranma ½', 'Patlabor the Mobile Police', 'Riding Bean', 'Angel Cop', 'YAWARA! a fashionable judo girl!', 'Baoh the Visitor', 'Five Star Stories', 'Cipher', 'Venus Wars', 'Gosenzo-sama Banbanzai!', 'Midnight Eye Goku'] },
+  { year: 1990, titles: ['Record of Lodoss War', 'Nadia: The Secret of Blue Water', 'Cyber City Oedo 808', 'Moomin', 'A Wind Named Amnesia', 'My Daddy Long Legs', 'Devil Hunter Yohko', 'Be-Bop High School', 'Mad Bull 34', 'The Hakkenden: Legend of the Dog Warriors', 'Samurai Pizza Cats', 'Like the Clouds, Like the Wind'] },
+  { year: 1991, titles: ['Only Yesterday', 'Dear Brother', 'Roujin Z', 'Otaku no Video', 'Mobile Suit Gundam F91', '3x3 Eyes', 'The Heroic Legend of Arslan: Age of Heroes', 'Doomed Megalopolis', "Who's Left Behind?", 'Honoo no Tenkousei', 'Here is Greenwood', 'Future GPX Cyber Formula'] },
+  { year: 1992, titles: ['Yu Yu Hakusho: Ghostfiles', 'Sailor Moon', 'Porco Rosso', 'Chika Gentou Gekiga: Shoujo Tsubaki', 'Shin Chan', 'Tenchi Muyo! Ryo-Ohki', 'Giant Robo the Animation: The Day the Earth Stood Still', 'Bastard!!', 'Video Girl Ai', 'Ai no Kusabi', 'Tokyo BABYLON', 'Tekkaman Blade'] },
+  { year: 1993, titles: ['Slam Dunk', 'Ocean Waves', "JoJo's Bizarre Adventure", 'Ninja Scroll', 'Dragon Ball Z: The History of Trunks', 'Battle Angel Alita', 'The Irresponsible Captain Tylor', 'Mobile Police Patlabor 2: The Movie', 'Black Jack', 'Dragon Ball Z: Plan to Destroy the Saiyans', 'Oh! My Goddess', 'Kyou kara Ore wa!!'] },
+  { year: 1994, titles: ['Pom Poko', 'Magic Knight Rayearth', "You're Under Arrest!", 'Shounan Junai Gumi!', 'Marmalade Boy', 'Genocyber', 'Key the Metal Idol', 'DNA²', 'Iria: Zeiram The Animation', 'Street Fighter II: The Animated Movie', 'Blue Seed', 'Grappler Baki: The Ultimate Fighter'] },      
+  { year: 1995, titles: ['Neon Genesis Evangelion', 'Ghost in the Shell', 'Whisper of the Heart', 'GOLDEN BOY', 'Memories', 'Fushigi Yugi: The Mysterious Play', 'Tenchi Muyo! Tenchi Universe', "Romeo's Blue Skies", 'Gokinjo Monogatari', 'Armitage III', 'Mysterious Thief Saint Tail', 'Sorcerer Hunters'] },
+  { year: 1996, titles: ['Rurouni Kenshin', 'Case Closed', 'Vision of Escaflowne', 'Kodocha', 'Martian Successor Nadesico', 'Dragon Ball: The Path to Power', 'Hana Yori Dango (Boys Over Flowers)', 'Angel of Legend', 'Birdy the Mighty', 'Sonic the Hedgehog: The Movie', 'Saber Marionette J', 'Those Who Hunt Elves'] },
+  { year: 1997, titles: ['Princess Mononoke', 'Berserk', 'Pokémon', 'Revolutionary Girl Utena', 'Flame of Recca', 'Agent Aika', 'Vampire Princess Miyu (TV)', 'The King of Braves: GaoGaiGar', 'Kindaichi Shounen no Jikenbo (TV)', 'Tenchi in Tokyo', "Night Warriors: Darkstalkers' Revenge", 'Dr. Slump'] },
+  { year: 1998, titles: ['Cowboy Bebop', 'Serial Experiments Lain', 'Perfect Blue', 'Trigun', 'Initial D 1st Stage', 'Cardcaptor Sakura', 'His and Her Circumstances', 'Yu☆Gi☆Oh!', 'Outlaw Star', 'Yokohama Shopping Log', 'Kite', 'Blue Submarine No. 6'] },
+  { year: 1999, titles: ['ONE PIECE', 'Hunter x Hunter', 'Now and Then, Here and There', 'The Big O', 'Digimon Adventure (Movie)', 'Excel Saga', 'Revolutionary Girl Utena: The Adolescence of Utena', 'Magical DoReMi', 'Petshop of Horrors', 'Blue Gender', 'My Neighbors the Yamadas', 'Crest of the Stars'] },
+  { year: 2000, titles: ['FLCL', 'InuYasha', 'Hajime no Ippo: The Fighting!', 'Yu-Gi-Oh!', 'Shelter', 'Ghost Stories', 'Jin-Roh: The Wolf Brigade', 'Love Hina', 'Blood: The Last Vampire', 'Gravitation TV', 'Black★Rock Shooter', 'NieA_7'] },
+  { year: 2001, titles: ['Spirited Away', 'Hellsing', 'Fruits Basket', 'Shaman King', 'Baki the Grappler', 'The Prince of Tennis', 'Metropolis', 'Hikaru no Go', 'Cat Soup', 'Noir', 'Rave Master', 'Alien Nine'] },
+  { year: 2002, titles: ['Naruto', 'Azumanga Daioh', 'Full Metal Panic!', 'Haibane Renmei', 'Chobits', 'Ghost in the Shell: Stand Alone Complex', 'The Cat Returns', 'Millennium Actress', 'Princess Tutu', 'The Twelve Kingdoms', 'Voices of a Distant Star', '.hack//SIGN'] },
+  { year: 2003, titles: ['Fullmetal Alchemist', "Kino's Journey", 'Tokyo Godfathers', 'Texhnolyze', 'Planetes', "Wolf's Rain", 'Gunslinger Girl', 'Gungrave', 'Cromartie High School', 'Lunar Legend Tsukihime', 'Last Exile', 'Chrono Crusade'] },
+  { year: 2004, titles: ['Bleach', 'Howl‘s Moving Castle', 'Monster', 'Samurai Champloo', 'Elfen Lied', 'Paranoia Agent', 'Beck: Mongolian Chop Squad', 'Gantz', 'School Rumble', 'Gankutsuou: The Count of Monte Cristo', 'The Place Promised in Our Early Days', 'Genshiken'] },
+  { year: 2005, titles: ['MUSHI-SHI', 'Shakugan no Shana', 'Eureka Seven', 'Hell Girl', 'Blood+', 'Honey and Clover', 'Paradise Kiss', 'ARIA The ANIMATION', 'Air', 'SHUFFLE!', 'Bludgeoning Angel Dokuro-chan', 'Black Cat'] },
+  { year: 2006, titles: ['Death Note', 'Code Geass: Lelouch of the Rebellion', 'Gintama', 'Ouran High School Host Club', 'Black Lagoon', 'The Melancholy of Haruhi Suzumiya', 'NANA', 'Welcome to the N-H-K', 'Fate/stay night', 'When They Cry', 'Hellsing Ultimate', 'The Girl Who Leapt Through Time'] },
+  { year: 2007, titles: ['Gurren Lagann', 'Clannad', '5 Centimeters per Second', 'Baccano!', 'Darker than Black', 'Lucky☆Star', 'School Days (TV)', 'Lovely Complex', 'Claymore', 'the Garden of sinners Chapter 1: Thanatos. (Overlooking View)', 'Kaiji - Ultimate Survivor', 'Mononoke'] },
+  { year: 2008, titles: ['Toradora!', 'Soul Eater', 'Black Butler', 'A Certain Magical Index', 'Spice and Wolf', 'Ponyo', 'To Love Ru', "Natsume's Book of Friends Season 1", 'Rosario + Vampire', 'Vampire Knight', 'Kiss x Sis', 'Sekirei'] },
+  { year: 2009, titles: ['Fullmetal Alchemist: Brotherhood', 'Fairy Tail', 'Bakemonogatari', 'K-ON!', 'Kimi ni Todoke: From Me to You', 'The Melancholy of Haruhi Suzumiya (2009)', 'Summer Wars', 'Eden of the East', "Heaven's Lost Property", 'Pandora Hearts', 'Tokyo Magnitude 8.0', 'Darker than Black: Gemini of the Meteor'] },
+  { year: 2010, titles: ['Angel Beats!', 'Durarara!!', 'Maid-Sama!', 'High School of the Dead', 'Oreimo', 'The Tatami Galaxy', 'Katanagatari', 'Shiki', 'Bakuman.', 'Baka and Test - Summon the Beasts', 'Seitokai Yakuindomo', 'The Secret World of Arrietty'] },
+  { year: 2011, titles: ['Hunter x Hunter (2011)', 'Blue Exorcist', 'The Future Diary', 'Anohana: The Flower We Saw That Day', 'Fate/Zero', 'Puella Magi Madoka Magica', 'Deadman Wonderland', 'Guilty Crown', 'Nichijou - My Ordinary Life', "Into the Forest of Fireflies' Light", 'Infinite Stratos', 'Chihayafuru'] },
+  { year: 2012, titles: ['Sword Art Online', "JoJo's Bizarre Adventure (TV)", 'PSYCHO-PASS', 'Hyouka', 'Love, Chunibyo & Other Delusions', 'High School DxD', 'The Pet Girl of Sakurasou', "Kuroko's Basketball", 'My Little Monster', 'Magi: The Labyrinth of Magic', 'Wolf Children', 'Daily Lives of High School Boys'] },
+  { year: 2013, titles: ['Attack on Titan', 'Kill la Kill', 'The Devil is a Part-Timer!', 'My Teen Romantic Comedy SNAFU', 'Beyond the Boundary', 'Golden Time', 'The Garden of Words', 'Date A Live', 'Log Horizon', 'Danganronpa: The Animation', 'Free! -Iwatobi Swim Club-', "WataMote: No Matter How I Look At It, It's You Guys' Fault I'm Not Popular!"] },
+  { year: 2014, titles: ['Tokyo Ghoul', 'Your lie in April', 'HAIKYU!!', 'Noragami', 'No Game, No Life', 'Akame ga Kill!', 'The Seven Deadly Sins', 'Parasyte -the maxim-', 'Terror in Resonance', 'Nisekoi', 'The Irregular at Magic High School', "Monthly Girls' Nozaki-kun"] },
+  { year: 2015, titles: ['Assassination Classroom', 'Death Parade', 'Charlotte', 'Food Wars!', 'Is It Wrong to Try to Pick Up Girls in a Dungeon?', 'Overlord', 'Seraph of the End: Vampire Reign', 'Plastic Memories', 'Prison School', 'Chivalry of a Failed Knight', 'Blood Blockade Battlefront', 'SHIMONETA: A Boring World Where the Concept of Dirty Jokes Doesn’t Exist'] },
+  { year: 2016, titles: ['My Hero Academia', 'Your Name.', 'A Silent Voice', 'Mob Psycho 100', 'ERASED', 'Re:ZERO -Starting Life in Another World-', "KONOSUBA -God's blessing on this wonderful world!", 'Bungo Stray Dogs', 'The Disastrous Life of Saiki K.', 'ReLIFE', 'Yuri!!! on ICE', 'Orange'] },
+  { year: 2017, titles: ['Black Clover', 'Kakegurui', 'Classroom of the Elite', 'Made in Abyss', "Miss Kobayashi's Dragon Maid", 'Saga of Tanya the Evil', "The Ancient Magus' Bride", "Masamune-kun's Revenge", 'Tsuredure Children', 'Eromanga Sensei', 'Akashic Records of Bastard Magic Instructor', 'BLEND-S'] },
+  { year: 2018, titles: ['Rascal Does Not Dream of Bunny Girl Senpai', 'Violet Evergarden', 'DARLING in the FRANXX', 'That Time I Got Reincarnated as a Slime', 'I Want to Eat Your Pancreas', 'Devilman Crybaby', 'Wotakoi: Love is Hard for Otaku', 'BANANA FISH', 'GOBLIN SLAYER', 'Angels of Death', 'Grand Blue Dreaming', 'Cells at Work!'] },
+  { year: 2019, titles: ['Demon Slayer: Kimetsu no Yaiba', 'The Promised Neverland', 'Kaguya-sama: Love is War', 'Dr. STONE', 'Vinland Saga', 'Fire Force', 'The Rising of the Shield Hero', 'Dororo', 'Weathering With You', 'Fruits Basket (2019)', 'The Quintessential Quintuplets', 'BEASTARS'] },
+  { year: 2020, titles: ['JUJUTSU KAISEN', 'Tower of God', 'Rent-a-Girlfriend', 'The God of High School', 'The Misfit of Demon King Academy', 'Toilet-bound Hanako-kun', 'TONIKAWA: Over The Moon For You', 'Great Pretender', 'A Whisker Away', "BOFURI: I Don't Want to Get Hurt, so I'll Max Out My Defense.", "Darwin's Game", 'Dorohedoro'] },
+  { year: 2021, titles: ['Horimiya', 'Tokyo Revengers', 'Mushoku Tensei: Jobless Reincarnation', 'Komi Can’t Communicate', 'To Your Eternity', 'WONDER EGG PRIORITY', '86 EIGHTY-SIX', "DON'T TOY WITH ME, MISS NAGATORO", 'SK8 the Infinity', 'Ranking of Kings', 'The Case Study of Vanitas', 'Higehiro: After Being Rejected, I Shaved and Took in a High School Runaway'] },
+  { year: 2022, titles: ['Chainsaw Man', 'SPY x FAMILY', 'My Dress-Up Darling', 'Cyberpunk: Edgerunners', 'BLUE LOCK', 'The Eminence in Shadow', 'Call of the Night', 'BOCCHI THE ROCK!', 'Summer Time Rendering', 'Lycoris Recoil', "Shikimori's Not Just a Cutie", 'Suzume'] },
+  { year: 2023, titles: ['Frieren: Beyond Journey’s End', 'Hell’s Paradise', 'Oshi No Ko', 'MASHLE: MAGIC AND MUSCLES', 'The Apothecary Diaries', 'Zom 100: Bucket List of the Dead', 'Tengoku Daimakyo', 'My Love Story with Yamada-kun at Lv999', 'Tomo-chan Is a Girl!', 'Shangri-La Frontier', 'The Dangers in My Heart', 'The Angel Next Door Spoils Me Rotten'] },
+  { year: 2024, titles: ['Solo Leveling', 'DAN DA DAN', 'Kaiju No.8', 'Delicious in Dungeon', 'WIND BREAKER', 'Alya Sometimes Hides Her Feelings in Russian', 'Wistoria: Wand and Sword', 'A Sign of Affection', 'Blue Box', 'Makeine: Too Many Losing Heroines!', 'The Wrong Way to Use Healing Magic', 'My Deer Friend Nokotan'] },
+];
 
-    const totalTitles = animeData.reduce((acc, year) => acc + year.titles.length, 0);
-    let watchedCount = 0;
+    let currentDatasetName = 'highestRated';
+    const progressStore = {
+      highestRated: JSON.parse(localStorage.getItem('progress_highestRated') || '{}'),
+      mostPopular: JSON.parse(localStorage.getItem('progress_mostPopular') || '{}')
+    };
+    let currentDataset = highestRatedData;
 
     const container = document.getElementById("anime-container");
     const counter = document.getElementById("counter");
+    const startSelect = document.getElementById("start-year");
+    const endSelect = document.getElementById("end-year");
 
-    function updateCounter() {
-      counter.textContent = `Watched: ${watchedCount} / ${totalTitles}`;
-    }
+    function populateYearFilters() {
+      const savedStart = localStorage.getItem(`range_start_${currentDatasetName}`);
+      const savedEnd = localStorage.getItem(`range_end_${currentDatasetName}`);
 
-    animeData.forEach((block) => {
-      
+      startSelect.innerHTML = endSelect.innerHTML = '';
+      const years = currentDataset.map(b => b.year);
 
-      const row = document.createElement("div");
-      row.className = "year-row";
-
-      const title = document.createElement("div");
-      title.className = "year-title";
-      title.textContent = block.year;
-      row.appendChild(title);
-
-      const grid = document.createElement("div");
-      grid.className = "anime-grid";
-
-      const cells = [];
-
-      block.titles.forEach((anime) => {
-        const id = `${block.year}-${anime}`;
-        const cell = document.createElement("div");
-        cell.className = "anime-cell";
-        cell.textContent = anime;
-
-        if (savedProgress[id]) {
-          cell.classList.add("watched");
-          watchedCount++;
-        }
-
-        cell.onclick = () => {
-          const watched = cell.classList.toggle("watched");
-          watchedCount += watched ? 1 : -1;
-
-          if (watched) {
-            savedProgress[id] = true;
-          } else {
-            delete savedProgress[id];
-          }
-          localStorage.setItem(storageKey, JSON.stringify(savedProgress));
-
-          updateCounter();
-
-          const allWatched = cells.every(c => c.classList.contains("watched"));
-          if (allWatched) {
-            title.classList.add("complete");
-          } else {
-            title.classList.remove("complete");
-          }
-        };
-
-        cells.push(cell);
-        grid.appendChild(cell);
+      years.forEach(year => {
+        startSelect.appendChild(new Option(year, year));
+        endSelect.appendChild(new Option(year, year));
       });
 
-      const allWatched = cells.every(c => c.classList.contains("watched"));
-      if (allWatched) {
-        title.classList.add("complete");
-      }
+      startSelect.value = years.includes(+savedStart) ? savedStart : years[0];
+      endSelect.value = years.includes(+savedEnd) ? savedEnd : years[years.length - 1];
+    }
 
-      row.appendChild(grid);
-      container.appendChild(row);
-    });
+    function updateCounter(blocks) {
+      const store = progressStore[currentDatasetName];
+      const counts = { watched: 0, partial: 0, dropped: 0, total: 0 };
+      blocks.forEach(b => b.titles.forEach(title => {
+        const id = `${b.year}-${title}`;
+        const s = store[id];
+        if (s) counts[s]++;
+        counts.total++;
+      }));
+      counter.textContent = `Watched: ${counts.watched} | Partial: ${counts.partial} | Dropped: ${counts.dropped} | Total: ${counts.total}`;
+    }
 
-    updateCounter();
+    function renderTable() {
+      container.innerHTML = "";
+      const start = +startSelect.value;
+      const end = +endSelect.value;
+      const store = progressStore[currentDatasetName];
+      const blocks = currentDataset.filter(b => b.year >= start && b.year <= end);
+      document.getElementById("title").textContent = `${end - start + 1} Years of Anime Checklist`;
 
-    document.getElementById("save-button").addEventListener("click", () => {
-      html2canvas(document.querySelector("#export-wrapper"), {
+      blocks.forEach(block => {
+        const row = document.createElement("div");
+        row.className = "year-row";
+
+        const yearTitle = document.createElement("div");
+        yearTitle.className = "year-title";
+        yearTitle.textContent = block.year;
+        row.appendChild(yearTitle);
+
+        const grid = document.createElement("div");
+        grid.className = "anime-grid";
+
+        const states = [];
+
+        block.titles.forEach(title => {
+          const id = `${block.year}-${title}`;
+          const cell = document.createElement("div");
+          cell.className = "anime-cell";
+          cell.textContent = title;
+
+          const state = store[id];
+          if (state) {
+            cell.classList.add(state);
+            cell.dataset.state = state;
+          } else {
+            cell.dataset.state = '';
+          }
+
+          cell.onclick = () => {
+            const all = ['', 'watched', 'partial', 'dropped'];
+            const idx = all.indexOf(cell.dataset.state);
+            const next = all[(idx + 1) % all.length];
+            cell.classList.remove('watched', 'partial', 'dropped');
+            if (next) cell.classList.add(next);
+            cell.dataset.state = next;
+
+            if (next) store[id] = next;
+            else delete store[id];
+
+            localStorage.setItem(`progress_${currentDatasetName}`, JSON.stringify(store));
+            renderTable();
+          };
+
+          states.push(cell.dataset.state);
+          grid.appendChild(cell);
+        });
+
+        const unique = new Set(states);
+        if (unique.size === 1 && !unique.has('')) {
+          yearTitle.classList.add([...unique][0]);
+        }
+
+        row.appendChild(grid);
+        container.appendChild(row);
+      });
+
+      updateCounter(blocks);
+    }
+
+    document.getElementById("tab-rated").onclick = () => {
+      currentDatasetName = 'highestRated';
+      currentDataset = highestRatedData;
+      document.getElementById("tab-rated").classList.add("active");
+      document.getElementById("tab-popular").classList.remove("active");
+      populateYearFilters();
+      renderTable();
+    };
+
+    document.getElementById("tab-popular").onclick = () => {
+      currentDatasetName = 'mostPopular';
+      currentDataset = mostPopularData;
+      document.getElementById("tab-rated").classList.remove("active");
+      document.getElementById("tab-popular").classList.add("active");
+      populateYearFilters();
+      renderTable();
+    };
+
+    document.getElementById("save-button").onclick = () => {
+      html2canvas(document.getElementById("export-wrapper"), {
         backgroundColor: '#111'
       }).then(canvas => {
         const link = document.createElement("a");
@@ -235,12 +370,29 @@ const animeData = [
         link.href = canvas.toDataURL();
         link.click();
       });
-    });
-	
-	document.getElementById("reset-button").addEventListener("click", () => {
-		localStorage.removeItem(storageKey);
-		location.reload();
-	});
+    };
+
+    document.getElementById("reset-button").onclick = () => {
+      localStorage.removeItem(`progress_${currentDatasetName}`);
+      localStorage.removeItem(`range_start_${currentDatasetName}`);
+      localStorage.removeItem(`range_end_${currentDatasetName}`);
+      progressStore[currentDatasetName] = {};
+      populateYearFilters();
+      renderTable();
+    };
+
+    startSelect.onchange = () => {
+      localStorage.setItem(`range_start_${currentDatasetName}`, startSelect.value);
+      renderTable();
+    };
+
+    endSelect.onchange = () => {
+      localStorage.setItem(`range_end_${currentDatasetName}`, endSelect.value);
+      renderTable();
+    };
+
+    populateYearFilters();
+    renderTable();
   </script>
 </body>
 </html>
